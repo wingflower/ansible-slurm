@@ -62,8 +62,7 @@ https://docs.docker.com/engine/install/centos/
 > #### Case1. Ansible
 > - Modify
 >   - .inventory.yml
->   - ./conf/exports
->   - ./conf/slurm.conf
+>   - ./conf/all files
 >   - ./vars/test.yml
 > - Install ansible
 > ```shell
