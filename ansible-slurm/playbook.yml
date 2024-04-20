@@ -1,0 +1,41 @@
+- name: Set up time server by chrony
+  import_playbook: ./playbooks/chrony_playbook.yml
+
+- name: Set up Hostname and hosts
+  import_playbook: ./playbooks/hosts_playbook.yml
+
+- name: Set up the OpenSSL for all nodes
+  import_playbook: ./playbooks/openssl_playbook.yml
+
+#- name: Set up the NFS for server
+#  import_playbook: ./playbooks/nfs_server_playbook.yml
+
+#- name: Set up the NFS for client
+#  import_playbook: ./playbooks/nfs_client_playbook.yml
+
+#- name: Set up users
+#  import_playbook: ./playbooks/gen_users.yml
+
+#- name: Set up the Munge for all nodes
+#  import_playbook: ./playbooks/munge_playbook.yml
+
+#- name: Install packages for all nodes
+#  import_playbook: ./playbooks/pkg_playbook.yml
+
+#- name: Install slurm for all nodes
+#  import_playbook: ./playbooks/install_slurm_playbook.yml
+
+#- name: Copy gres file to GPU nodes
+#  import_playbook: ./playbooks/gpu_gres_playbook.yml
+
+#- name: Set up the Slurm for control
+#  import_playbook: ./playbooks/slurm_control_playbook.yml
+
+#- name: Set up the DB for control
+#  import_playbook: ./playbooks/slurm_db_playbook.yml
+
+#- name: Set up the Slurm for compute
+#  import_playbook: ./playbooks/slurm_compute_playbook.yml
+
+#- name: restart slurm services
+#  import_playbook: ./playbooks/slurm_services.yml

@@ -1,0 +1,32 @@
+- hosts: g_slurm
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    #- name: install_chrony
+    #  yum:
+    #    name: chrony
+    #    state: present
+    #    use_backend: yum
+
+    - name: copy_chrony_conf
+      copy:
+        src: "{{CONFIG_PATH}}{{CHRONY_CONF}}"
+        dest: /etc/chrony.conf
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: restart_chrony
+      service:
+        name: chronyd
+        state: restarted
+        enabled: yes
+
+    - name: restart_chrony
+      shell: |
+        timedatectl set-ntp yes

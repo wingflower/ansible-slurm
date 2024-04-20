@@ -1,0 +1,52 @@
+- hosts: slurm_db
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: install_slurm_packages
+      yum:
+        name: mariadb-server
+        state: latest
+        use_backend: yum
+
+
+- hosts: g_slurm
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: install_development_tools
+      yum:
+        name: "@Development tools"
+        state: present
+        use_backend: yum
+
+    - name: install_packages
+      yum:
+        name: "{{SLURM_PACKAGES}}"
+        state: latest
+        use_backend: yum
+
+          #    - name: install_cmake
+          #      shell: |
+          #        wget https://github.com/Kitware/CMake/releases/download/v3.18.2/cmake-3.18.2.tar.gz && \
+          #        tar xvf cmake-3.18.2.tar.gz && \
+          #        cd cmake-3.18.2 && \
+          #        ./booststrap --prefix=/usr/local && \
+          #        make && make install
+          #
+          #    - name: install_json_c
+          #      shell: |
+          #        git clone --depth 1 --single-branch -b json-c-0.15-20200726 https://github.com/json-c/json-c.git json-c && \
+          #        mkdir json-c-build && \
+          #        cmake json-c && \
+          #        make && make install
+          #      tags: json-c

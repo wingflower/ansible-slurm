@@ -1,0 +1,56 @@
+- hosts: nfs_server
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: install_nfs
+      yum:
+        name: nfs-utils
+        state: latest
+        use_backend: yum
+
+    - name: start_rpcbind
+      service:
+        name: rpcbind
+        state: started
+        enabled: yes
+
+    - name: start_nfs_server
+      service:
+        name: nfs-server
+        state: started
+        enabled: yes
+
+    - name: make_nfs_dir
+      file:
+        path: "{{NFS_PATH}}"
+        state: directory
+        # mode: 0755
+        # owner: slurm
+        # group: slurm
+
+    - name: copy_exports
+      copy:
+        src: "{{CONFIG_PATH}}{{NFS_EXPORTS}}"
+        dest: /etc
+
+    - name: reload_exports
+      shell: |
+        exportfs -a
+
+    - name: set_firewalld
+      service:
+        name: firewalld
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: restart_nfs
+      service:
+        name: nfs
+        state: restarted
+        enabled: yes

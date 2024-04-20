@@ -1,0 +1,14 @@
+# Filesystem
+*/data/
+*.swp
+*.pem
+*.env
+.python-version
+BUILD_ARGS
+
+# Ansible-slurm
+ansible-slurm/vars/*
+ansible-slurm/playbooks/conf/munge.key
+
+# docker-slurm
+docker-slurm/var/*

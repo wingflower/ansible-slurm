@@ -1,0 +1,27 @@
+- hosts: g_slurm
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{env}}.yml"
+
+  tasks:
+    - name: make_users
+      shell: |
+        export MUNGEUSER=991
+        groupadd -g $MUNGEUSER munge
+        useradd  -m -c "MUNGE Uid 'N' Gid Emporium" -d /var/lib/munge -u $MUNGEUSER -g munge  -s /sbin/nologin munge
+        export SLURMUSER=992
+        groupadd -g $SLURMUSER slurm
+        useradd  -m -c "SLURM workload manager" -d /var/lib/slurm -u $SLURMUSER -g slurm  -s /bin/bash slurm
+        export SLURMRESTDUSER=993
+        groupadd -g $SLURMRESTDUSER slurmrestd
+        useradd  -m -c "SLURM REST API manager" -d /var/lib/slurmrestd -u $SLURMRESTDUSER -g slurmrestd  -s /bin/bash slurmrestd
+      register: command_result
+      ignore_errors: yes
+      become: yes
+
+    - name: make_users_debug
+      debug:
+        var: command_result

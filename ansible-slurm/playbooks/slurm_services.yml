@@ -1,0 +1,49 @@
+- hosts: slurm_control
+  remote_user: root
+  become: true
+  # become_method: sudo
+  # become_flag: sudo
+  gather_facts: false
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: restart_slurmctld_service
+      service:
+        name: slurmctld
+        state: restarted
+        enabled: yes
+
+
+- hosts: slurm_db
+  remote_user: root
+  become: true
+  # become_method: sudo
+  # become_flag: sudo
+  gather_facts: false
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: restart_slurmdbd_service
+      service:
+        name: slurmdbd
+        state: restarted
+        enabled: yes
+
+
+- hosts: slurm_compute
+  remote_user: root
+  become: true
+  # become_method: sudo
+  # become_flag: sudo
+  gather_facts: false
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: restart_slurmd_service
+      service:
+        name: slurmd
+        state: restarted
+        enabled: yes

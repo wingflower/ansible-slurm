@@ -1,0 +1,53 @@
+- hosts: slurm_db
+  remote_user: root
+  become: true
+  # become_method: sudo
+  # become_flag: sudo
+  gather_facts: false
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: copy_slurmdbd_conf
+      copy:
+        src: "{{CONFIG_PATH}}{{SLURMDBD_CONF}}"
+        dest: /etc/slurm
+
+    - name: set_slurmdbd_file
+      shell: |
+        chown slurm: /etc/slurm/slurmdbd.conf
+        chmod 600 /etc/slurm/slurmdbd.conf
+        touch /var/log/kbds-slurm/slurmdbd.log
+        chown slurm: /var/log/kbds-slurm/slurmdbd.log
+
+    - name: copy_mariadb_sql
+      copy:
+        src: "{{SCRIPT_PATH}}{{DB_SQL}}"
+        dest: /root/
+
+    - name: start_mariadb
+      service:
+        name: mariadb
+        state: started
+        enabled: yes
+
+    - name: make_slurm_db
+      shell: |
+        mysql < /root/{{DB_SQL}}
+      register: command_result
+      ignore_errors: true
+
+    - name: make_slurm_db_debug
+      debug:
+        var: command_result
+
+    - name: copy_innodb_cnf
+      copy:
+        src: "{{CONFIG_PATH}}{{DB_CONF}}"
+        dest: /etc/my.cnf.d
+
+    - name: restart_mariadb_logfile
+      shell: |
+        systemctl stop mariadb
+        mv /var/lib/mysql/ib_logfile? /tmp/
+        systemctl start mariadb

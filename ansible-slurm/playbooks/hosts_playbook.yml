@@ -1,0 +1,20 @@
+- hosts: g_slurm
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: change_hostname
+      hostname:
+        name: "{{ inventory_hostname }}"
+      #when:
+      #  ansible_fqdn != ansible_ssh_host
+
+    - name: insert_hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ item.IP}} {{ item.NAME }}"
+      loop: "{{ NODES }}"

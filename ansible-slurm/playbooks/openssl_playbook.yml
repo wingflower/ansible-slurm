@@ -1,0 +1,87 @@
+- hosts: g_slurm
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    #- name: remove_openssl
+    #  yum:
+    #    name: openssl
+    #    state: absent
+
+    - name: install_packages
+      yum:
+        name: "{{ item }}"
+        state: present
+        use_backend: yum
+      with_items:
+        - gcc
+        - gcc-c++
+        - pcre-devel
+        - zlib-devel
+        - wget
+
+    - name: groupinstall_Development_tools
+      yum:
+        name: "@Development tools"
+        state: present
+        use_backend: yum
+
+    - name: download_openssl
+      get_url:
+        url: "https://www.openssl.org/source/openssl-{{OPENSSL_VERSION}}.tar.gz"
+        dest: "{{OPENSSL_DOWNLOAD_PATH}}"
+        validate_certs: false
+
+    - name: unarchive_openssl
+      unarchive:
+        src: "{{OPENSSL_DOWNLOAD_PATH}}/openssl-{{OPENSSL_VERSION}}.tar.gz"
+        dest: "{{OPENSSL_DOWNLOAD_PATH}}/"
+        remote_src: true
+
+    - name: configure_openssl
+      shell: |
+        ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib
+      args:
+        chdir: "{{OPENSSL_DOWNLOAD_PATH}}/openssl-{{OPENSSL_VERSION}}"
+
+    - name: make_install_openssl
+      shell: |
+        make -j $(nproc) && make install
+      args:
+        chdir: "{{OPENSSL_DOWNLOAD_PATH}}/openssl-{{OPENSSL_VERSION}}"
+
+    - name: backup_org_openssl
+      shell: |
+        mv /usr/bin/openssl /usr/bin/openssl_bak
+
+    - name: mk_symbolic_link
+      shell: |
+        ln -s /usr/local/ssl/lib/libssl.so.1.1 /usr/lib64/libssl.so.1.1
+        ln -s /usr/local/ssl/lib/libcrypto.so.1.1 /usr/lib64/libcrypto.so.1.1
+        ln -s /usr/local/ssl/bin/openssl /usr/bin/openssl
+        ldconfig /usr/local/lib64
+
+    - name: set_up_profile
+      shell: |
+        tee /etc/profile.d/openssl.sh<<EOF
+        export PATH=/usr/local/openssl/bin:\$PATH
+        export LD_LIBRARY_PATH=/usr/local/openssl/lib:\$LD_LIBRARY_PATH
+        EOF
+
+    - name: apply_profile
+      shell: |
+        source /etc/profile.d/openssl.sh
+
+    - name: check_version
+      shell: |
+        openssl version
+        openssl ciphers -v | awk '{print $2}' | sort | uniq
+      register: command_result
+
+    - name: print_result
+      debug:
+        var: command_result

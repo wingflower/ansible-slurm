@@ -1,0 +1,91 @@
+all:
+  hosts:
+    slurm-control-[01:02]:
+      ansible_user: root
+      ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+    cpu32-only-[001:022]:
+      ansible_user: root
+      ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+    cpu64-only-[001:005]:
+      ansible_user: root
+      ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+    gpu-1-[001:007]:
+      ansible_user: root
+      ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+    gpu-2-[001:004]:
+      ansible_user: root
+      ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+    gpu-4-[001:004]:
+      ansible_user: root
+      ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+    gpu-8-[001:003]:
+      ansible_user: root
+      ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+  children:
+    nfs_server:
+      hosts:
+        slurm-control-01:
+      vars:
+        ansible_user: root
+        ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+    nfs_client:
+      hosts:
+        slurm-control-02:
+        cpu32-only-[001:022]:
+        cpu64-only-[001:005]:
+        gpu-1-[001:007]:
+        gpu-2-[001:004]:
+        gpu-4-[001:004]:
+        gpu-8-[001:003]:
+      vars:
+        ansible_user: root
+        ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+    g_slurm:
+      children:
+        slurm_control:
+          hosts:
+            slurm-control-[01:02]:
+          vars:
+            ansible_user: root
+            ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+        slurm_db:
+          hosts:
+            slurm-db-01:
+          vars:
+            ansible_user: root
+            ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+        slurm_compute:
+          hosts:
+            cpu32-only-[001:022]:
+            cpu64-only-[001:005]:
+            gpu-1-[001:007]:
+            gpu-2-[001:004]:
+            gpu-4-[001:004]:
+            gpu-8-[001:003]:
+          vars:
+            ansible_user: root
+            ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+        gpu_1:
+          hosts:
+            gpu-1-[001:007]:
+          vars:
+            ansible_user: root
+            ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+        gpu_2:
+          hosts:
+            gpu-2-[001:004]:
+          vars:
+            ansible_user: root
+            ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+        gpu_4:
+          hosts:
+            gpu-4-[001:004]:
+          vars:
+            ansible_user: root
+            ansible_ssh_private_key_file: /root/keys/bdata.private.pem
+        gpu_8:
+          hosts:
+            gpu-8-[001:003]:
+          vars:
+            ansible_user: root
+            ansible_ssh_private_key_file: /root/keys/bdata.private.pem

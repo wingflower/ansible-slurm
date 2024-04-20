@@ -1,0 +1,60 @@
+- hosts: gpu_1
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: copy_gres_conf
+      copy:
+        src: "{{CONFIG_PATH}}/1gpu/gres.conf"
+        dest: "/etc/slurm/gres.conf"
+
+
+- hosts: gpu_2
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: copy_gres_conf
+      copy:
+        src: "{{CONFIG_PATH}}/2gpu/gres.conf"
+        dest: "/etc/slurm/gres.conf"
+
+
+- hosts: gpu_4
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: copy_gres_conf
+      copy:
+        src: "{{CONFIG_PATH}}/4gpu/gres.conf"
+        dest: "/etc/slurm/gres.conf"
+
+
+- hosts: gpu_8
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: copy_gres_conf
+      copy:
+        src: "{{CONFIG_PATH}}/8gpu/gres.conf"
+        dest: "/etc/slurm/gres.conf"
+
+

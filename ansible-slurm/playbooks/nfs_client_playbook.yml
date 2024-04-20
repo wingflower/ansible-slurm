@@ -1,0 +1,44 @@
+- hosts: nfs_client
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: install_nfs
+      yum:
+        name: nfs-utils
+        state: latest
+        use_backend: yum
+
+    - name: make_nfs_dir
+      file:
+        path: "{{NFS_PATH}}"
+        state: directory
+        # mode: 0755
+        # owner: slurm
+        # group: slurm
+
+    - name: show_info
+      shell: |
+        showmount -e {{NFS_SERVER_IP}}
+        rpcinfo -p {{NFS_SERVER_IP}}
+
+    - name: nfs_mount
+      shell: |
+        mount {{NFS_SERVER_IP}}:{{NFS_PATH}} {{NFS_PATH}}
+      register: command_result
+      ignore_errors: yes
+
+    - name: nfs_mount_debug
+      debug:
+        var: command_result
+
+    - name: set_mount_auto
+      shell: |
+        cat <<EOF >> /etc/fstab
+        {{NFS_SERVER_IP}}:/nfsshare /nfsshare nfs auto,noatime,nolock,bg,nfsvers=3,intr,tcp,actimeo=1800 0 0
+        EOF
+        mount -a

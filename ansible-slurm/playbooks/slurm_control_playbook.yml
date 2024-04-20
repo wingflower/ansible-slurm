@@ -1,0 +1,102 @@
+- hosts: slurm_control
+  remote_user: root
+  become: true
+  # become_method: sudo
+  # become_flag: sudo
+  gather_facts: false
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: copy_slurm_conf
+      copy:
+        src: "{{CONFIG_PATH}}{{SLURM_CONF}}"
+        dest: /etc/slurm/
+
+    - name: copy_cgroup_conf
+      copy:
+        src: "{{CONFIG_PATH}}{{CGROUP_CONF}}"
+        dest: /etc/slurm/
+
+    - name: copy_job_submit
+      copy:
+        src: "{{CONFIG_PATH}}{{JOB_SUBMIT}}"
+        dest: /etc/slurm/
+
+    - name: copy_slurmrestd_conf
+      copy:
+        src: "{{CONFIG_PATH}}{{SLURMRESTD_CONF}}"
+        dest: /etc/slurm/
+        mode: 0600
+        owner: slurmrestd
+        group: slurmrestd
+
+    - name: make_spool_slurm
+      file:
+        path: /var/spool/kbds-slurm
+        state: directory
+        mode: 0755
+        owner: slurm
+        group: slurm
+
+    - name: make_spool_slurm_statesave
+      file:
+        path: /var/spool/kbds-slurm/statesave
+        state: directory
+        mode: 0755
+        owner: slurm
+        group: slurm
+
+    - name: make_spool_slurmctld
+      file:
+        path: /var/spool/kbds-slurmctld
+        state: directory
+        mode: 0755
+        owner: slurm
+        group: slurm
+
+    - name: make_log_slurm
+      file:
+        path: /var/log/kbds-slurm
+        state: directory
+        mode: 0755
+        owner: slurm
+        group: slurm
+
+    - name: copy_jwt_hs256
+      copy:
+        src: "{{CONFIG_PATH}}{{JWT_KEY}}"
+        dest: /var/spool/kbds-slurm/statesave
+
+    - name: set_log
+      shell: |
+        chown slurm: /var/spool/kbds-slurm/
+        chown slurm: /var/spool/kbds-slurmctld/
+        chmod 755 /var/spool/kbds-slurm/
+        chmod 755 /var/spool/kbds-slurmctld/
+        touch /var/log/kbds-slurm/slurmctld.log
+        chown slurm: /var/log/kbds-slurm/slurmctld.log
+        touch /var/log/kbds-slurm/slurm_jobacct.log /var/log/kbds-slurm/slurm_jobcomp.log
+        chown slurm: /var/log/kbds-slurm/slurm_jobacct.log /var/log/kbds-slurm/slurm_jobcomp.log
+
+          #- name: set_jwt_key
+          #  community.general.filesize:
+          #    path: /var/spool/slurm/statesave/jwt_hs256.key
+          #    size: 32B
+          #    source: /dev/random
+          #    mode: 0600
+          #    owner: slurm
+          #    group: slurm
+
+    - name: set_firewall
+      service:
+        name: firewalld
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    - name: restart_slurmctld_service
+      service:
+        name: slurmctld
+        state: restarted
+        enabled: yes

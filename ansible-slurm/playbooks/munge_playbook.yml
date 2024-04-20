@@ -1,0 +1,91 @@
+- hosts: g_slurm
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{env}}.yml"
+
+  tasks:
+    - name: install_epel
+      yum:
+        name: epel-release
+        state: latest
+        use_backend: yum
+
+    - name: install_munge
+      yum:
+        name: "{{MUNGE_PACKAGES}}"
+        state: latest
+        use_backend: yum
+
+- hosts: nfs_server
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{env}}.yml"
+
+  tasks:
+    - name: make_munge_key
+      shell: |
+        yum install rng-tools -y
+        rngd -r /dev/urandom
+        echo y | /usr/sbin/create-munge-key -r
+        dd if=/dev/urandom bs=1 count=1024 > /etc/munge/munge.key
+        chown munge: /etc/munge/munge.key
+        chmod 400 /etc/munge/munge.key
+
+    - name: fetch_munge_key
+      fetch:
+        src: /etc/munge/munge.key
+        dest: ../conf/munge.key
+        flat: yes
+
+          #    - name: make_pem_path
+          #      file:
+          #        path: "{{REMOTE_PEM_PATH}}"
+          #        state: directory
+          #        # mode: 0755
+          #        # owner: root
+          #        # group: root
+          #
+          #    - name: copy_compute_pem
+          #      copy:
+          #        src: "{{CONFIG_PATH}}{{COMPUTE_PEM}}"
+          #        dest: "{{REMOTE_PEM_PATH}}"
+          #
+          #    - name: set_pem
+          #      shell: |
+          #        chmod 600 {{REMOTE_PEM_PATH}}{{COMPUTE_PEM}}
+          #
+          #    - name: send_munge_key
+          #      shell: |
+          #        scp -i {{REMOTE_PEM_PATH}}{{COMPUTE_PEM}} -o StrictHostKeyChecking=no /etc/munge/munge.key root@{{item}}:/etc/munge
+          #      loop: "{{COMPUTE_IP}}"
+
+- hosts: g_slurm
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+
+  tasks:
+    - name: copy_munge_key
+      copy:
+        src: ../conf/munge.key
+        dest: /etc/munge/munge.key
+        owner: munge
+        mode: '400'
+
+    - name: set_munge
+      shell: |
+        chown -R munge: /etc/munge/ /var/log/munge/
+        chmod 0700 /etc/munge/ /var/log/munge/
+
+    - name: restart_munge
+      service:
+        name: munge
+        state: restarted
+        enabled: yes

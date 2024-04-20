@@ -1,0 +1,12 @@
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+# Login Node
+192.168.1.1		slurm-control-01
+192.168.1.2		slurm-control-02
+192.168.1.200	slurm-db-01
+
+192.168.1.11	cpu32-only-001
+192.168.1.12	cpu32-only-002
+192.168.1.13	cpu32-only-003
+192.168.1.14	cpu32-only-004

@@ -1,0 +1,82 @@
+- hosts: g_slurm
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    #- name: download_slurm
+    #  get_url:
+    #    url: "https://download.schedmd.com/slurm/slurm-{{SLURM_VERSION}}.tar.bz2"
+    #    dest: "{{DOWNLOAD_PATH}}"
+
+    - name: make_nfs_dir
+      file:
+        path: "{{NFS_PATH}}"
+        state: directory
+        # mode: 0755
+        # owner: slurm
+        # group: slurm
+
+    - name: copy_slurm_file
+      copy:
+        src: "{{SLURM_FILE_PATH}}slurm-{{SLURM_VERSION}}.tar.bz2"
+        dest: "{{NFS_PATH}}/slurm-{{SLURM_VERSION}}.tar.bz2"
+
+
+- hosts: nfs_server
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: rpmbuild_slurm
+      shell: |
+        rpmbuild -ta {{DOWNLOAD_PATH}}/slurm-{{SLURM_VERSION}}.tar.bz2 --with jwt --with slurmrestd
+
+- hosts: slurm_db
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: rpmbuild_slurm
+      shell: |
+        rpmbuild -ta {{DOWNLOAD_PATH}}/slurm-{{SLURM_VERSION}}.tar.bz2
+
+- hosts: nfs_client
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: rpmbuild_slurm
+      shell: |
+        rpmbuild -ta {{DOWNLOAD_PATH}}/slurm-{{SLURM_VERSION}}.tar.bz2
+
+- hosts: g_slurm
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: install_slurm
+      shell: |
+        mkdir /nfsshare/slurm-rpms
+        cd /nfsshare/slurm-rpms
+        cp /root/rpmbuild/RPMS/x86_64/* /nfsshare/slurm-rpms/
+        yum --nogpgcheck localinstall * -y

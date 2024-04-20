@@ -1,0 +1,269 @@
+- hosts: nfs_server
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: touch_slurmrestd_log_file
+      file:
+        path: /var/log/kbds-slurm/slurmrestd.log
+        state: touch
+        mode: 0600
+        owner: slurmrestd
+        group: slurmrestd
+      tags: run_slurmrestd
+
+    - name: run_slurmrestd
+      shell: |
+        su - slurmrestd -c "nohup slurmrestd -f /etc/slurm/slurmrestd.conf -a rest_auth/jwt -s openapi/{{API_VERSION}} -vvv {{SLURM_REST_HOST}}:{{SLURM_REST_PORT}} > /var/log/kbds-slurm/slurmrestd.log &"
+        #su - slurmrestd -c "nohup slurmrestd -f /etc/slurm/slurmrestd.conf -a rest_auth/jwt -s openapi/v0.0.39 -vvv 0.0.0.0:6820 > /var/log/kbds-slurm/slurmrestd.log &"
+      register: command_result
+      tags: run_slurmrestd
+
+    - name: print_run_slurmrestd
+      debug:
+        var: command_result
+      tags: run_slurmrestd
+
+    - name: kill_slurmrestd
+      shell: |
+        pkill -9 -ef "slurmrestd -f /etc/slurm/slurmrestd.conf -a rest_auth/jwt -s openapi/{{API_VERSION}} -vvv {{SLURM_REST_HOST}}:{{SLURM_REST_PORT}}"
+      register: command_result
+      tags: kill_slurmrestd
+
+    - name: print_kill_slurmrestd
+      debug:
+        var: command_result
+      tags: kill_slurmrestd
+
+    - name: gen_token
+      shell: |
+        scontrol token username={{SLURM_USER}} lifespan={{TOKEN_EXPIRED}}|cut -d '=' -f 2-
+      register: command_result
+      tags: gen_token
+
+    - name: print_token
+      debug:
+        var: command_result
+      tags: gen_token
+
+    - name: test_api
+      shell: |
+        curl --header "X-SLURM-USER-NAME:{{SLURM_USER}}" --header "X-SLURM-USER-TOKEN:$(sudo scontrol token username=slurm|cut -d '=' -f 2-)" http://{{SLURM_REST_TEST}}:6820{{TEST_ENDPOINT}}
+      register: command_result
+      tags: test_api
+
+    - name: print_test_api
+      debug:
+        var: command_result
+      tags: test_api
+
+    - name: restart_slurmctld_service
+      service:
+        name: slurmctld
+        state: restarted
+        enabled: yes
+
+- hosts: g_slurm
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: send_slurm_conf
+      copy:
+        src: "{{CONFIG_PATH}}{{SLURM_CONF}}"
+        dest: /etc/slurm/slurm.conf
+      register: command_result
+      tags: send_slurm_conf
+
+    - name: print_slurm_conf
+      debug:
+        var: command_result
+      tags: send_slurm_conf
+
+    - name: send_munge_key
+      copy:
+        src: "{{CONFIG_PATH}}{{MUNGE_KEY}}"
+        dest: /etc/munge/munge.key
+      register: command_result
+      tags: send_munge_key
+
+    - name: print_munge_key
+      debug:
+        var: command_result
+      tags: send_munge_key
+
+    - name: send_pam_sshd
+      copy:
+        src: "{{CONFIG_PATH}}{{PAM_SSHD}}"
+        dest: /etc/pam.d/sshd
+      register: command_result
+      tags: send_pam_conf
+
+    - name: print_pam_sshd
+      debug:
+        var: command_result
+      tags: send_pam_conf
+
+    - name: send_pam_system
+      copy:
+        src: "{{CONFIG_PATH}}{{PAM_SYSTEM}}"
+        dest: /etc/pam.d/system-auth
+      register: command_result
+      tags: send_pam_conf
+
+    - name: print_pam_system
+      debug:
+        var: command_result
+      tags: send_pam_conf
+
+    - name: send_pam_password
+      copy:
+        src: "{{CONFIG_PATH}}{{PAM_PASSWORD}}"
+        dest: /etc/pam.d/password-auth
+      register: command_result
+      tags: send_pam_conf
+
+    - name: print_pam_password
+      debug:
+        var: command_result
+      tags: send_pam_conf
+
+    - name: restart_munge
+      service:
+        name: munge
+        state: restarted
+        enabled: yes
+      register: command_result
+      ignore_errors: yes
+      tags: restart_munge
+
+    - name: print_restart_munge
+      debug:
+        var: command_result
+      tags: restart_munge
+
+
+- hosts: slurm_db
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: send_slurmdbd_conf
+      copy:
+        src: "{{CONFIG_PATH}}{{SLURMDBD_CONF}}"
+        dest: /etc/slurm/slurmdbd.conf
+      register: command_result
+      tags: send_slurmdbd_conf
+
+    - name: print_slurmdbd_conf
+      debug:
+        var: command_result
+      tags: send_slurmdbd_conf
+
+    - name: restart_slurmdbd
+      service:
+        name: slurmdbd
+        state: restarted
+        enabled: yes
+      register: command_result
+      ignore_errors: yes
+      tags: restart_slurmdbd
+
+    - name: print_restart_slurmdbd
+      debug:
+        var: command_result
+      tags: restart_slurmdbd
+
+
+- hosts: slurm_control
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: restart_slurmctld
+      service:
+        name: slurmctld
+        state: restarted
+        enabled: yes
+      register: command_result
+      ignore_errors: yes
+      tags: restart_slurmctld
+
+    - name: print_restart_slurmctld
+      debug:
+        var: command_result
+      tags: restart_slurmctld
+
+    - name: status_slurmctld
+      command: systemctl status slurmctld
+      register: command_result
+      ignore_errors: yes
+      tags: status_slurmctld
+
+    - name: print_status_slurmctld
+      debug:
+        var: command_result
+      tags: status_slurmctld
+
+    - name: status_slurmdbd
+      command: systemctl status slurmdbd
+      register: command_result
+      ignore_errors: yes
+      tags: status_slurmdbd
+
+    - name: print_status_slurmdbd
+      debug:
+        var: command_result
+      tags: status_slurmdbd
+
+
+- hosts: slurm_compute
+  remote_user: root
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  vars_files:
+    - "../vars/{{ env }}.yml"
+
+  tasks:
+    - name: restart_slurmd
+      service:
+        name: slurmd
+        state: restarted
+        enabled: yes
+      register: command_result
+      ignore_errors: yes
+      tags: restart_slurmd
+
+    - name: print_restart_slurmd
+      debug:
+        var: command_result
+      tags: restart_slurmd
+
+    - name: status_slurmd
+      command: systemctl status slurmd
+      register: command_result
+      ignore_errors: yes
+      tags: status_slurmd
+
+    - name: print_status_slurmd
+      debug:
+        var: command_result
+      tags: status_slurmd
+
